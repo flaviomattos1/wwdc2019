@@ -9,6 +9,10 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     var player = SKSpriteNode()
     var counter:Int = 0
     var index = 0
+    var playerLife = 5
+    var enemyLife = 5
+    
+    var padColorIndex = 0
     
     var padcolor = [SKTexture(imageNamed: "bluebar.png"), SKTexture(imageNamed: "greenbar.png"),SKTexture(imageNamed: "redbar.png"), SKTexture(imageNamed: "pinkbar.png")]
     
@@ -19,10 +23,6 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     private var spinnyNode : SKShapeNode!
     
     override public func sceneDidLoad() {
-        
-        // muda acada um segundo a cor do player
-        
-//        var  _ = Timer.scheduledTimer(timeInterval: 0.25, target: self, selector: #selector(playerColorChange), userInfo: nil, repeats: true)
         
         
         self.counter = 0
@@ -40,7 +40,6 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         player = self.childNode(withName: "player") as! SKSpriteNode
         player.physicsBody?.categoryBitMask = contactMaskType.player
 
-        
         //game start time
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             print("start!")
@@ -78,25 +77,25 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
             print("entrou no rosa")
             return true
         }
-        print("nao entrou nenhum")
+        
         return false
     }
     
     // player color is change
     @objc func playerColorChange(){
-        //if playertouch {
-            player.texture = padcolor[Int.random(in: 0 ..< 4)]
-        //}
-        
+    
+        padColorIndex = padColorIndex + 1
+        if padColorIndex >= 4 {
+            padColorIndex = 0
+        }
+            player.texture = padcolor[padColorIndex]
     }
     override public func didMove(to view: SKView) {
     }
     
     //player collision effects
-    
     let shockWaveAction: SKAction = {
-        let growAndFadeAction = SKAction.group([SKAction.scale(to: 50, duration: 0.5),
-                                                SKAction.fadeOut(withDuration: 0.5)])
+        let growAndFadeAction = SKAction.group([SKAction.scale(to: 50, duration: 0.5),SKAction.fadeOut(withDuration: 0.5)])
         
         let sequence = SKAction.sequence([growAndFadeAction,
                                           SKAction.removeFromParent()])
@@ -105,14 +104,11 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     }()
     
     //test of contact
-    
     public func didBegin(_ contact: SKPhysicsContact) {
         
         //objectcolision
-        
-        if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "player" || contact.bodyA.node?.name == "player" && contact.bodyB.node?.name == "ball"
+        if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "player" || contact.bodyA.node?.name == "player" && contact.bodyB.node?.name == "ball" && contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "enemy" || contact.bodyA.node?.name == "enemy" && contact.bodyB.node?.name == "ball"
         {
-            
             player.texture = padcolor[Int.random(in: 0 ..< 4)]
             
             let shockwave = SKShapeNode(circleOfRadius: 1)
@@ -128,14 +124,9 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         else if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "enemy" || contact.bodyA.node?.name == "enemy" && contact.bodyB.node?.name == "ball"
         {
-            // cor do enemy
-            self.index = Int.random(in: 0 ..< 4)
-            //enemy.texture = ball.texture
-            print("trocou cor do enemy")
             //teste enemy
             counter += 1
             self.hitcounter()
-            
         }
         
     }
@@ -165,23 +156,36 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     override public func update(_ currentTime: TimeInterval) {
         
         if self.hitInNodes() == false {
-            print("entrou hit")
+            
             player.physicsBody?.categoryBitMask = contactMaskType.nothing
         }
         else {
-            print("nao foi dessa vez")
+            
             player.physicsBody?.categoryBitMask = contactMaskType.player
         }
         
         enemy.run(SKAction.moveTo(x: ball.position.x, duration: 0.2))
         
-        //win in round detect
+        //ball move corrector
+        if ball.position.y > 0 && abs(ball.physicsBody!.velocity.dy) <= 30.0 {
+            ball.physicsBody?.applyForce(CGVector(dx: 0, dy: -50))
+        }
+        else if ball.position.y < 0 && abs(ball.physicsBody!.velocity.dy) <= 30.0 {
+            ball.physicsBody?.applyForce(CGVector(dx: 0, dy: 50))
+        }
+        
+        //winner detect
         if ball.position.y <= player.position.y - 30  {
+            
+            self.childNode(withName: "PlayerLife\(playerLife)")?.run(SKAction.fadeOut(withDuration: 0.5))
+            playerLife -= 1
             ball.position = CGPoint(x: 0, y: 0)
             ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
-            
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self.ball.physicsBody?.applyImpulse(CGVector(dx: 50, dy: 50))
+            }
+            if playerLife < 1{
+                print("Acabou bb")
             }
             
         }
@@ -199,16 +203,19 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if counter == 2 {
             ball.texture = ballcolor[4]
-            player.physicsBody?.restitution = 1.02
+            index = 1
+            player.physicsBody?.restitution = 1.05
         }
         if counter == 3 {
             ball.texture = ballcolor[5]
-            
+            index = 1
         }
         if counter > 3 {
-            ball.texture = ballcolor[Int.random(in: 0 ..< 3)]
-            
+            let textureCounter = Int.random(in: 0 ..< 3)
+            ball.texture = ballcolor[textureCounter]
+            index = textureCounter
         }
+        enemy.texture = padcolor[index]
     }
 }
 
