@@ -23,37 +23,31 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var padcolor = [SKTexture(imageNamed: "bluebar.png"), SKTexture(imageNamed: "greenbar.png"),SKTexture(imageNamed: "redbar.png"), SKTexture(imageNamed: "pinkbar.png")]
     
-    var ballcolor = [SKTexture(imageNamed: "owl.png"), SKTexture(imageNamed: "frog.png"), SKTexture(imageNamed: "fox.png"), SKTexture(imageNamed: "egg.png"), SKTexture(imageNamed: "egg1.png"), SKTexture(imageNamed: "egg2.png")]
+    var ballcolor = [SKTexture(imageNamed: "owl.png"), SKTexture(imageNamed: "frog.png"), SKTexture(imageNamed: "fox.png"), SKTexture(imageNamed: "egg.png"),]
     
     var playertouch:Bool = false
     private var label : SKLabelNode!
     private var spinnyNode : SKShapeNode!
     
-    //hit nodes is true
+    //Color match verify function
     func hitInNodes() -> Bool {
         
         if self.ball.texture == ballcolor[0] && self.player.texture == padcolor[0]{
-            print("entrou texture azul")
             return true
         }
         else if self.ball.texture == ballcolor[1] && self.player.texture == padcolor[1]{
-            print("entrou texture verde")
             return true
         }
         else if self.ball.texture == ballcolor[2] && self.player.texture == padcolor[2]{
-            print("entrou vermelho")
             return true
         }
-        else if self.player.texture == padcolor[3] && (self.ball.texture == ballcolor[3] ||
-            self.ball.texture == ballcolor[4] ||
-            self.ball.texture == ballcolor[5]){
-            print("entrou no rosa")
+        else if self.ball.texture == ballcolor[3] && self.player.texture == padcolor[3]{
             return true
         }
-        
         return false
-    }
-    //calling timer
+        }
+    
+    //Number counter to start
     func restartTimer() {
         let secondWait: SKAction = SKAction.wait(forDuration: 1)
         let finishTimer: SKAction = SKAction.run {
@@ -64,14 +58,13 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
             }else{
                 self.restartTimer()
             }
-            
         }
         let seq = SKAction.sequence([secondWait, finishTimer])
         self.run(seq)
     }
+    
     override public func sceneDidLoad() {
-       
-        //carregar numeros
+        
         self.numbers = self.childNode(withName: "numbers") as? SKSpriteNode
         restartTimer()
         
@@ -79,6 +72,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         self.counter = 0
         physicsWorld.contactDelegate = self
         
+        //nodes physicsBody
         ball = self.childNode(withName: "ball") as! SKSpriteNode
         ball.physicsBody?.categoryBitMask = contactMaskType.ball
 
@@ -92,22 +86,25 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         player = self.childNode(withName: "player") as! SKSpriteNode
         player.physicsBody?.categoryBitMask = contactMaskType.player
         player.physicsBody?.collisionBitMask = contactMaskType.ball
+
        
         leftWall = self.childNode(withName: "leftWall") as! SKSpriteNode
         
-        rightWall = self.childNode(withName: "rightWall") as! SKSpriteNode
-     
         
-        //game start time
+        rightWall = self.childNode(withName: "rightWall") as! SKSpriteNode
+        
+        
+        //game start counter time
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             
+            //ball direction
             let startBall = Int.random(in: 0...1)
             if startBall == 0 {
-            self.ball.physicsBody?.applyImpulse(CGVector(dx: -40, dy: -40))
+            self.ball.physicsBody?.applyImpulse(CGVector(dx: -30, dy: -30))
             } else {
-            self.ball.physicsBody?.applyImpulse(CGVector(dx: 40, dy: 40))
+            self.ball.physicsBody?.applyImpulse(CGVector(dx: 30, dy: 30))
                
-                //start play sound
+                //start background music
                 do{
                     self.soundBg = try AVAudioPlayer(contentsOf: URL.init(fileURLWithPath: Bundle.main.path(forResource: "bgmStage", ofType: "wav")!))
                     self.soundBg.numberOfLoops = -1
@@ -119,7 +116,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
  
-    // player color is change
+    //changing player color
     @objc func playerColorChange(){
     
         padColorIndex = padColorIndex + 1
@@ -162,6 +159,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "enemy" || contact.bodyA.node?.name == "enemy" && contact.bodyB.node?.name == "ball"
         {
+            //calling object collision effect
             let shockwave = SKShapeNode(circleOfRadius: 1)
             
             shockwave.position = contact.contactPoint
@@ -174,7 +172,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
             
         }
     }
-
+    //touch functions
     public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         self.playertouch = false
         playerColorChange()
@@ -182,31 +180,34 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     public override  func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         self.playertouch = true
-        for touch in touches{
-            
-            let location = touch.location(in: self)
-            player.run(SKAction.moveTo(x: location.x, duration: 0.2))
-        }
-        
+//        for touch in touches{
+//
+//            //let location = touch.location(in: self)
+////            player.run(SKAction.moveTo(x: location.x, duration: 0.2))
+//        }
     }
     
     public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        print("chamou moved")
         for touch in touches{
             self.playertouch = true
             let location = touch.location(in: self)
             player.run(SKAction.moveTo(x: location.x, duration: 0.2))
+          
+            //range limit of player movement
+            let xrange = SKRange(lowerLimit: -((scene?.size.width)!/2) + 150, upperLimit: ((scene?.size.width)!/2 - 150))
+            let yrange = SKRange(lowerLimit: -320, upperLimit: -320)
+            self.player.constraints = [SKConstraint.positionX(xrange, y: yrange)]
         }
     }
     
     override public func update(_ currentTime: TimeInterval) {
         
-        
+        //player is hitable or not
         if self.hitInNodes() == false && !firstTouch {
-            
             player.physicsBody?.categoryBitMask = contactMaskType.nothing
         }
         else {
-            
             player.physicsBody?.categoryBitMask = contactMaskType.player
         }
         
@@ -217,13 +218,20 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         if ball.position.y > 0 && abs(ball.physicsBody!.velocity.dy) <= 80.0 {
             ball.physicsBody?.applyForce(CGVector(dx: 0, dy: -80))
         }
-        else if ball.position.y < 0 && abs(ball.physicsBody!.velocity.dy) <= 40.0 {
+        else if ball.position.y < 0 && abs(ball.physicsBody!.velocity.dy) <= 80.0 {
             ball.physicsBody?.applyForce(CGVector(dx: 0, dy: 80))
         }
-        
-        //winner detecter
-        if ball.position.y <= player.position.y - 50  {
+        if ball.position.x > 0 && abs(ball.physicsBody!.velocity.dx) <= 80.0 {
+            ball.physicsBody?.applyForce(CGVector(dx: -80, dy: 0))
             
+        }else if ball.position.x < 0 && abs(ball.physicsBody!.velocity.dx) <= 80.0 {
+            ball.physicsBody?.applyForce(CGVector(dx: 80, dy: 0))
+        }
+        
+        //winner detector
+        if ball.position.y <= player.position.y - 50  {
+           
+            //player life is done
             self.childNode(withName: "PlayerLife\(playerLife)")?.run(SKAction.fadeOut(withDuration: 0.5))
             playerLife -= 1
             
@@ -233,15 +241,14 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.ball.physicsBody?.applyImpulse(CGVector(dx: 30, dy: 30))
             }
             if playerLife < 1{
-              
             }
         }
         else if ball.position.y >= enemy.position.y + 50 {
             
+            //enemy life is done
             self.childNode(withName: "EnemyLife\(enemyLife)")?.run(SKAction.fadeOut(withDuration: 0.5))
             enemyLife -= 1
            
-            
             ball.position = CGPoint(x: 0, y: 0)
             ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -251,6 +258,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     //ball image changer
+    /// <#Description#>
     func hitcounter() {
         
         if counter == 0 || counter == 1 {
@@ -258,12 +266,11 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
             index = 3
         }
         if counter == 2 {
-            ball.texture = ballcolor[4]
+            ball.texture = ballcolor[3]
             index = 3
-            player.physicsBody?.restitution = 1.05
         }
         if counter == 3 {
-            ball.texture = ballcolor[5]
+            ball.texture = ballcolor[3]
             index = 3
         }
         if counter > 3 {
