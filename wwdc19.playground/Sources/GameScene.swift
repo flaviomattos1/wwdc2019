@@ -1,6 +1,7 @@
 import PlaygroundSupport
 import SpriteKit
 import Foundation
+import AVFoundation
 
 var firstTouch = true
 
@@ -16,6 +17,9 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     var playerLife = 5
     var enemyLife = 5
     var padColorIndex = 0
+    var soundBg = AVAudioPlayer()
+    var number = 3
+    var numbers:SKSpriteNode?
     
     var padcolor = [SKTexture(imageNamed: "bluebar.png"), SKTexture(imageNamed: "greenbar.png"),SKTexture(imageNamed: "redbar.png"), SKTexture(imageNamed: "pinkbar.png")]
     
@@ -49,8 +53,27 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         
         return false
     }
-
+    //calling timer
+    func restartTimer() {
+        let secondWait: SKAction = SKAction.wait(forDuration: 1)
+        let finishTimer: SKAction = SKAction.run {
+            self.numbers?.texture = SKTexture(imageNamed: "num\(self.number).png")
+            self.number -= 1
+            if(self.number == 0){
+               self.numbers!.run(SKAction.fadeOut(withDuration: 0.5))
+            }else{
+                self.restartTimer()
+            }
+            
+        }
+        let seq = SKAction.sequence([secondWait, finishTimer])
+        self.run(seq)
+    }
     override public func sceneDidLoad() {
+       
+        //carregar numeros
+        self.numbers = self.childNode(withName: "numbers") as? SKSpriteNode
+        restartTimer()
         
         firstTouch = true
         self.counter = 0
@@ -73,15 +96,25 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         leftWall = self.childNode(withName: "leftWall") as! SKSpriteNode
         
         rightWall = self.childNode(withName: "rightWall") as! SKSpriteNode
+     
         
         //game start time
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             
             let startBall = Int.random(in: 0...1)
             if startBall == 0 {
             self.ball.physicsBody?.applyImpulse(CGVector(dx: -40, dy: -40))
             } else {
             self.ball.physicsBody?.applyImpulse(CGVector(dx: 40, dy: 40))
+               
+                //start play sound
+                do{
+                    self.soundBg = try AVAudioPlayer(contentsOf: URL.init(fileURLWithPath: Bundle.main.path(forResource: "bgmStage", ofType: "wav")!))
+                    self.soundBg.numberOfLoops = -1
+                    self.soundBg.prepareToPlay()
+                }
+                catch {}
+                self.soundBg.play()
             }
         }
     }
@@ -111,7 +144,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
     //test of contact
     public func didBegin(_ contact: SKPhysicsContact) {
         
-        //objectcolision
+        //object collision
         if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "player" || contact.bodyA.node?.name == "player" && contact.bodyB.node?.name == "ball"
         {
             
@@ -178,7 +211,7 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         //Enemy movement
-        enemy.run(SKAction.moveTo(x: ball.position.x, duration: 0.4))
+        enemy.run(SKAction.moveTo(x: ball.position.x, duration: 0.5))
         
         //ball move corrector
         if ball.position.y > 0 && abs(ball.physicsBody!.velocity.dy) <= 80.0 {
@@ -189,23 +222,26 @@ public class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         //winner detecter
-        if ball.position.y <= player.position.y - 40  {
+        if ball.position.y <= player.position.y - 50  {
             
             self.childNode(withName: "PlayerLife\(playerLife)")?.run(SKAction.fadeOut(withDuration: 0.5))
             playerLife -= 1
+            
             ball.position = CGPoint(x: 0, y: 0)
             ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self.ball.physicsBody?.applyImpulse(CGVector(dx: 30, dy: 30))
             }
             if playerLife < 1{
-                print("Acabou bb")
+              
             }
         }
-        else if ball.position.y >= enemy.position.y + 40{
+        else if ball.position.y >= enemy.position.y + 50 {
             
-            self.childNode(withName: "enemyLife\(enemyLife)")?.run(SKAction.fadeOut(withDuration: 0.5))
-            playerLife -= 1
+            self.childNode(withName: "EnemyLife\(enemyLife)")?.run(SKAction.fadeOut(withDuration: 0.5))
+            enemyLife -= 1
+           
+            
             ball.position = CGPoint(x: 0, y: 0)
             ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
